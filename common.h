@@ -227,7 +227,7 @@ typedef const WCHAR        *LPCWSTR;
 #endif
 
 #ifndef PAL_HAS_NATIVEMIDI
-# define PAL_HAS_NATIVEMIDI  0
+# define PAL_HAS_NATIVEMIDI  1
 #endif
 
 #ifndef PAL_LARGE

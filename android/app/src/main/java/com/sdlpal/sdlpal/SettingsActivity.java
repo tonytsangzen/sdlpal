@@ -33,6 +33,8 @@ import android.support.v7.widget.AppCompatSpinner;
 import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.CompoundButton;
@@ -470,5 +472,11 @@ public class SettingsActivity extends AppCompatActivity {
         setConfigInt(TextureHeight, Integer.parseInt((String)((EditText)findViewById(R.id.edTextureHeight)).getText().toString()));
 
         return true;
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        Log.d("SDL", event.toString());
+        return super.dispatchKeyEvent(event);
     }
 }

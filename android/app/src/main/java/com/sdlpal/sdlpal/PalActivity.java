@@ -21,13 +21,19 @@
 
 package com.sdlpal.sdlpal;
 
+import static com.sdlpal.sdlpal.AssetsZipUtils.UnZipAssetsFolder;
+
 import org.libsdl.app.SDLActivity;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.*;
 import android.util.*;
 import android.media.*;
 import android.net.Uri;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+
 import java.io.*;
 
 public class PalActivity extends SDLActivity {
@@ -43,7 +49,7 @@ public class PalActivity extends SDLActivity {
     public static native void setScreenSize(int width, int height);
 
     public static boolean crashed = false;
-
+    static String audioFile;
     private static MediaPlayer JNI_mediaplayer_load(String filename){
         Log.v(TAG, "loading midi:" + filename);
         if (mediaPlayer == null) {
@@ -60,9 +66,62 @@ public class PalActivity extends SDLActivity {
         return mediaPlayer;
     }
 
+    public boolean copyAssetsFile(Context m, String name, String path) {
+        Log.d("", "copy [" + name + "] to [" + path + "]");
+        try {
+            InputStream fis = m.getAssets().open(name);
+            byte fw[] = new byte[(int) fis.available()];
+            fis.read(fw);
+            fis.close();
+
+            FileOutputStream fos = new FileOutputStream(path);
+            fos.write(fw);
+            fos.flush();
+            fos.close();
+            return true;
+        } catch (Exception e) {
+            Log.d("", "Copy file error:" + e.toString());
+            e.printStackTrace();
+        }
+        return false;
+    }
+    private void PrepareFile(){
+        String cachePath = getApplicationContext().getExternalCacheDir().getPath();
+        Log.d("SDL", cachePath.toString());
+        String dataPath = cachePath;
+        String sdlpalPath = cachePath;
+
+        File extFolder = new File(sdlpalPath);
+        if( !extFolder.exists()) {
+            extFolder.mkdirs();
+        }
+
+        setAppPath(sdlpalPath, dataPath, cachePath);
+
+        File runningFile = new File(cachePath + "/running");
+        if(runningFile.exists()){
+            runningFile.delete();
+        }
+
+        copyAssetsFile(this, "sdlpal.cfg", dataPath + "/sdlpal.cfg");
+        File dataFile = new File(dataPath + "/data.zip");
+        if(!dataFile.exists()) {
+            copyAssetsFile(this, "data.zip", dataPath + "/data.zip");
+            try {
+                UnZipAssetsFolder(this, Uri.fromFile(dataFile), dataPath);
+            } catch (Exception e) {
+
+            }
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        PrepareFile();
+        loadConfigFile();
+        setConfigBoolean("LaunchSetting", false);
+        saveConfigFile();
 
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -89,4 +148,8 @@ public class PalActivity extends SDLActivity {
         }
         super.onResume();
     }
+    public static native boolean setConfigBoolean(String item, boolean value);
+    public static native boolean loadConfigFile();
+    public static native boolean saveConfigFile();
+    public static native void setAppPath(String basepath, String datapath, String cachepath);
 }

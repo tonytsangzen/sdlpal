@@ -34,6 +34,7 @@
 #include "palcommon.h"
 #include "global.h"
 #include "palcfg.h"
+#include "input.h"
 #include "util.h"
 #include "generated.h"
 
@@ -95,6 +96,20 @@ JNIEXPORT void JNICALL Java_com_sdlpal_sdlpal_MainActivity_setAppPath(JNIEnv *en
     midiInterFile = g_midipath.c_str();
 }
 
+EXTERN_C_LINKAGE
+JNIEXPORT void JNICALL Java_com_sdlpal_sdlpal_PalActivity_setAppPath(JNIEnv *env, jclass cls, jstring base_path, jstring data_path, jstring cache_path)
+{
+    g_basepath = jstring_to_utf8(env, base_path);
+    g_configpath = jstring_to_utf8(env, data_path);
+    g_cachepath = jstring_to_utf8(env, cache_path);
+    LOGV("got basepath:%s,configpath:%s,cachepath:%s\n",g_basepath.c_str(),g_configpath.c_str(),g_cachepath.c_str());
+    if (*g_basepath.rbegin() != '/') g_basepath.append("/");
+    if (*g_configpath.rbegin() != '/') g_configpath.append("/");
+    if (*g_cachepath.rbegin() != '/') g_cachepath.append("/");
+    g_midipath = g_cachepath + "intermediates.mid";
+    midiInterFile = g_midipath.c_str();
+}
+
 /*
  * Class:     com_sdlpal_sdlpal_PalActivity
  * Method:    setScreenSize
@@ -132,6 +147,18 @@ JNIEXPORT jboolean JNICALL Java_com_sdlpal_sdlpal_SettingsActivity_loadConfigFil
 
 /*
  * Class:     com_sdlpal_sdlpal_SettingsActivity
+ * Method:    loadConfigFile
+ * Signature: (V)Z
+ */
+EXTERN_C_LINKAGE
+JNIEXPORT jboolean JNICALL Java_com_sdlpal_sdlpal_PalActivity_loadConfigFile(JNIEnv *env, jclass cls)
+{
+    PAL_LoadConfig(TRUE);
+    return gConfig.fLaunchSetting ? JNI_TRUE : JNI_FALSE;
+}
+
+/*
+ * Class:     com_sdlpal_sdlpal_SettingsActivity
  * Method:    saveConfigFile
  * Signature: (V)Z
  */
@@ -140,7 +167,11 @@ JNIEXPORT jboolean JNICALL Java_com_sdlpal_sdlpal_SettingsActivity_saveConfigFil
 {
     return PAL_SaveConfig() ? JNI_TRUE : JNI_FALSE;
 }
-
+EXTERN_C_LINKAGE
+JNIEXPORT jboolean JNICALL Java_com_sdlpal_sdlpal_PalActivity_saveConfigFile(JNIEnv *env, jclass cls)
+{
+    return PAL_SaveConfig() ? JNI_TRUE : JNI_FALSE;
+}
 /*
  * Class:     com_sdlpal_sdlpal_SettingsActivity
  * Method:    getConfigBoolean
@@ -184,6 +215,13 @@ JNIEXPORT jstring JNICALL Java_com_sdlpal_sdlpal_SettingsActivity_getConfigStrin
  */
 EXTERN_C_LINKAGE
 JNIEXPORT jboolean JNICALL Java_com_sdlpal_sdlpal_SettingsActivity_setConfigBoolean(JNIEnv *env, jclass cls, jstring j_str, jboolean val)
+{
+    PALCFG_ITEM item = PAL_ConfigIndex(jstring_to_utf8(env, j_str).c_str());
+    return item >= 0 ? PAL_SetConfigBoolean(item, val ? TRUE : FALSE) : JNI_FALSE;
+}
+
+EXTERN_C_LINKAGE
+JNIEXPORT jboolean JNICALL Java_com_sdlpal_sdlpal_PalActivity_setConfigBoolean(JNIEnv *env, jclass cls, jstring j_str, jboolean val)
 {
     PALCFG_ITEM item = PAL_ConfigIndex(jstring_to_utf8(env, j_str).c_str());
     return item >= 0 ? PAL_SetConfigBoolean(item, val ? TRUE : FALSE) : JNI_FALSE;

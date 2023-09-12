@@ -326,8 +326,56 @@ PAL_KeyboardEventFilter(
       else if (lpEvent->key.keysym.sym == SDLK_PERIOD)
       {
          Filter_StepCurrentParam(-1);
+      }else if(lpEvent->key.keysym.sym == SDLK_MENU){
+         g_InputState.dwKeyPress |= kKeyMenu;
       }
+      else if(lpEvent->key.keysym.sym == SDLK_UP){
+         g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+         g_InputState.dir = kDirNorth;
+         g_InputState.dwKeyPress |= kKeyUp;
+      }
+      else if(lpEvent->key.keysym.sym == SDLK_DOWN){
+         g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+         g_InputState.dir = kDirSouth;
+         g_InputState.dwKeyPress |= kKeyDown;
+      }
+      else if(lpEvent->key.keysym.sym == SDLK_LEFT){
+         g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+         g_InputState.dir = kDirWest;
+         g_InputState.dwKeyPress |= kKeyLeft;
+      }
+      else if(lpEvent->key.keysym.sym == SDLK_RIGHT){
+         g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+         g_InputState.dir = kDirEast;
+         g_InputState.dwKeyPress |= kKeyRight;
+      }
+      else if(lpEvent->key.keysym.sym == SDL_SCANCODE_X){
+         if (gpGlobals->fInBattle)
+         {
+            g_InputState.dwKeyPress |= kKeyRepeat;
+         }
+         else
+         {
+            g_InputState.dwKeyPress |= kKeyUseItem;
+         }
+      }else if(lpEvent->key.keysym.sym == SDL_SCANCODE_J){
+         g_InputState.dwKeyPress |= kKeySearch;
+      }else if(lpEvent->key.keysym.sym == SDLK_SELECT){
+         g_InputState.dwKeyPress |= kKeyForce;
+      }
+
 #endif
+   }else if (lpEvent->type == SDL_KEYUP){
+      if(lpEvent->key.keysym.sym == SDLK_UP ||
+         lpEvent->key.keysym.sym == SDLK_DOWN ||
+         lpEvent->key.keysym.sym == SDLK_LEFT ||
+         lpEvent->key.keysym.sym == SDLK_RIGHT
+      ){
+         g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+         g_InputState.dir = kDirUnknown;
+         g_InputState.dwKeyPress = kKeyNone;
+      }
+
    }
 }
 
@@ -540,6 +588,7 @@ PAL_JoystickEventFilter(
 --*/
 {
 #if PAL_HAS_JOYSTICKS
+   //SDL_Log("JOYSTICKS %08x", lpEvent->type);
    switch (lpEvent->type)
    {
    case SDL_JOYAXISMOTION:
@@ -633,17 +682,61 @@ PAL_JoystickEventFilter(
       //
       // Pressed the joystick button
       //
-      switch (lpEvent->jbutton.button & 1)
+      switch (lpEvent->jbutton.button)
       {
-      case 0:
-         g_InputState.dwKeyPress |= kKeyMenu;
-         break;
-
-      case 1:
-         g_InputState.dwKeyPress |= kKeySearch;
-         break;
+         case SDL_CONTROLLER_BUTTON_DPAD_UP:
+            g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+            g_InputState.dir = kDirNorth;
+            g_InputState.dwKeyPress |= kKeyUp;
+              break;
+         case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+            g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+            g_InputState.dir = kDirSouth;
+            g_InputState.dwKeyPress |= kKeyDown;
+              break;
+         case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+            g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+            g_InputState.dir = kDirWest;
+            g_InputState.dwKeyPress |= kKeyLeft;
+              break;
+         case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+            g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+            g_InputState.dir = kDirEast;
+            g_InputState.dwKeyPress |= kKeyRight;
+              break;
+         case SDL_CONTROLLER_BUTTON_A:
+            g_InputState.dwKeyPress |= kKeySearch;
+            break;
+          case SDL_CONTROLLER_BUTTON_B:
+             if (gpGlobals->fInBattle)
+             {
+                g_InputState.dwKeyPress |= kKeyRepeat;
+             }
+             else
+             {
+                g_InputState.dwKeyPress |= kKeyUseItem;
+             }
+             break;
+          case SDL_CONTROLLER_BUTTON_START:
+             g_InputState.dwKeyPress |= kKeyForce;
+             break;
+         default:
+            break;
       }
       break;
+      case SDL_JOYBUTTONUP:
+      case SDL_KEYUP:
+         switch (lpEvent->jbutton.button) {
+            case SDL_CONTROLLER_BUTTON_DPAD_UP:
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+               g_InputState.prevdir = (gpGlobals->fInBattle ? kDirUnknown : g_InputState.dir);
+               g_InputState.dir = kDirUnknown;
+               g_InputState.dwKeyPress = kKeyNone;
+            break;
+         }
+         break;
    }
 #endif
 }
@@ -1179,6 +1272,7 @@ PAL_PollEvent(
    int ret = SDL_PollEvent(&evt);
    if (ret != 0 && !input_event_filter(&evt, &g_InputState))
    {
+      //SDL_Log("type %08x", evt.type);
       PAL_EventFilter(&evt);
    }
 
@@ -1214,7 +1308,7 @@ PAL_ProcessEvent(
 #endif
    while (PAL_PollEvent(NULL));
 
-   PAL_UpdateKeyboardState();
+   //PAL_UpdateKeyboardState();
 #if PAL_HAS_JOYSTICKS
    if(g_InputState.joystickNeedUpdate)
       PAL_UpdateJoyStickState();
